@@ -35,8 +35,9 @@ func Load() *Config {
 	}
 
 	// Parse CORS origins
-	corsOriginsStr := "*,https://devhub.kadzu.dev"
-	cfg.CORSOrigins = strings.Split(corsOriginsStr, ",")
+	// corsOriginsStr := getEnv("CORS_ORIGINS", "http://localhost:3000")
+	// cfg.CORSOrigins = strings.Split(corsOriginsStr, ",")
+	cfg.CORSOrigins = []string{"*"}
 	for i := range cfg.CORSOrigins {
 		cfg.CORSOrigins[i] = strings.TrimSpace(cfg.CORSOrigins[i])
 	}
