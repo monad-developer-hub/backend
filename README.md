@@ -95,8 +95,8 @@ RATE_LIMIT_PER_MINUTE=100
 ### Submissions ⭐ **Core Feature**
 - `POST /api/v1/submissions` - Submit a project (generates submission ID)
 - `GET /api/v1/submissions/:submissionId` - Get submission status by ID
-- `GET /api/v1/submissions` - Get all submissions (admin)
-- `PUT /api/v1/submissions/:submissionId/review` - Review submission (admin)
+- `GET /api/v1/submissions` - Get all submissions
+- `PUT /api/v1/submissions/:submissionId/review` - Review submission
 
 ### Analytics
 - `GET /api/v1/analytics/stats` - Get blockchain statistics

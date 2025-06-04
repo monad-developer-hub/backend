@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"monad-devhub-be/internal/services"
 	"monad-devhub-be/internal/utils"
@@ -10,12 +11,14 @@ import (
 )
 
 type SubmissionHandler struct {
-	projectService *services.ProjectService
+	projectService    *services.ProjectService
+	submissionService *services.SubmissionService
 }
 
-func NewSubmissionHandler(projectService *services.ProjectService) *SubmissionHandler {
+func NewSubmissionHandler(projectService *services.ProjectService, submissionService *services.SubmissionService) *SubmissionHandler {
 	return &SubmissionHandler{
-		projectService: projectService,
+		projectService:    projectService,
+		submissionService: submissionService,
 	}
 }
 
@@ -110,61 +113,96 @@ func (h *SubmissionHandler) GetSubmissionStatus(c *gin.Context) {
 		return
 	}
 
-	// Get submission status (implementation would be in a submission service)
-	// For now, returning a placeholder response
+	// Get submission from service
+	submission, err := h.submissionService.GetSubmissionByID(submissionID)
+	if err != nil {
+		if err.Error() == "record not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "SUBMISSION_NOT_FOUND",
+					"message": "Submission not found",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to retrieve submission",
+				"details": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Build timeline
+	timeline := gin.H{
+		"submitted": submission.SubmittedAt,
+	}
+	if submission.ReviewStartedAt != nil {
+		timeline["review_started"] = *submission.ReviewStartedAt
+	}
+	if submission.ReviewedAt != nil {
+		timeline["review_completed"] = *submission.ReviewedAt
+	}
+	if submission.PublishedAt != nil {
+		timeline["published"] = *submission.PublishedAt
+	}
+
+	// Return submission status
 	c.JSON(http.StatusOK, gin.H{
-		"submissionId": submissionID,
-		"status":       "pending",
-		"projectName":  "Sample Project",
-		"submittedAt":  "2024-01-15T10:30:00Z",
-		"timeline": gin.H{
-			"submitted": "2024-01-15T10:30:00Z",
-		},
+		"submissionId": submission.ID,
+		"status":       submission.Status,
+		"projectName":  submission.ProjectName,
+		"submittedAt":  submission.SubmittedAt,
+		"reviewedAt":   submission.ReviewedAt,
+		"feedback":     submission.Feedback,
+		"project":      submission.ApprovedProject,
+		"timeline":     timeline,
 	})
 }
 
-// GetSubmissions handles GET /api/v1/submissions (Admin only)
+// GetSubmissions handles GET /api/v1/submissions
 func (h *SubmissionHandler) GetSubmissions(c *gin.Context) {
-	// TODO: Add authentication middleware for admin access
 
-	// Get query parameters
-	_ = c.Query("status") // TODO: Use this parameter for filtering
+	// Parse query parameters
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "10"))
+	status := c.Query("status")
+	sortBy := c.DefaultQuery("sortBy", "submitted_at")
+	sortOrder := c.DefaultQuery("sortOrder", "DESC")
 
-	// Placeholder response
-	c.JSON(http.StatusOK, gin.H{
-		"success": true,
-		"submissions": []gin.H{
-			{
-				"submissionId": "SUB-1749035470531-4W6UZJ",
-				"status":       "pending",
-				"projectName":  "Sample Project 1",
-				"submittedAt":  "2024-01-15T10:30:00Z",
+	// Create request
+	req := &services.GetSubmissionsRequest{
+		Page:      page,
+		Limit:     limit,
+		Status:    status,
+		SortBy:    sortBy,
+		SortOrder: sortOrder,
+	}
+
+	// Get submissions from service
+	response, err := h.submissionService.GetSubmissions(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to retrieve submissions",
+				"details": err.Error(),
 			},
-			{
-				"submissionId": "SUB-1749035471532-5X7VYK",
-				"status":       "approved",
-				"projectName":  "Sample Project 2",
-				"submittedAt":  "2024-01-14T09:20:00Z",
-				"reviewedAt":   "2024-01-16T14:30:00Z",
-			},
-		},
-		"pagination": gin.H{
-			"page":       1,
-			"limit":      10,
-			"total":      2,
-			"totalPages": 1,
-		},
-		"stats": gin.H{
-			"pending":          5,
-			"under_review":     3,
-			"approved":         12,
-			"rejected":         2,
-			"requires_changes": 1,
-		},
-	})
+		})
+		return
+	}
+
+	// Return response
+	c.JSON(http.StatusOK, response)
 }
 
-// ReviewSubmission handles PUT /api/v1/submissions/:submissionId/review (Admin only)
+// ReviewSubmission handles PUT /api/v1/submissions/:submissionId/review
 func (h *SubmissionHandler) ReviewSubmission(c *gin.Context) {
 	submissionID := c.Param("submissionId")
 
@@ -182,7 +220,7 @@ func (h *SubmissionHandler) ReviewSubmission(c *gin.Context) {
 
 	// Parse review request
 	var reviewRequest struct {
-		Status           string   `json:"status" binding:"required,oneof=approved rejected requires_changes"`
+		Status           string   `json:"status" binding:"required,oneof=pending under_review approved rejected requires_changes"`
 		Feedback         *string  `json:"feedback,omitempty"`
 		ChangesRequested []string `json:"changesRequested,omitempty"`
 		ReviewerID       uint     `json:"reviewerId" binding:"required"`
@@ -200,7 +238,37 @@ func (h *SubmissionHandler) ReviewSubmission(c *gin.Context) {
 		return
 	}
 
-	// TODO: Implement actual review logic
+	// Update submission status
+	err := h.submissionService.UpdateSubmissionStatus(
+		submissionID,
+		reviewRequest.Status,
+		reviewRequest.Feedback,
+		reviewRequest.ChangesRequested,
+		&reviewRequest.ReviewerID,
+	)
+
+	if err != nil {
+		if err.Error() == "record not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "SUBMISSION_NOT_FOUND",
+					"message": "Submission not found",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update submission",
+				"details": err.Error(),
+			},
+		})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":      true,

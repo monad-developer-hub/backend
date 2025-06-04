@@ -92,11 +92,11 @@ func ValidateCategories(categories []string) bool {
 func ValidateEvent(event string) bool {
 	allowedEvents := []string{
 		"Mission: 1 Crazy Contract",
-		"Mission: 2 Smart Wallet",
-		"Mission: 3 DeFi Integration",
-		"Mission: 4 NFT Marketplace",
-		"Hackathon 2023",
-		"Hackathon 2024",
+		"Mission: 2 MCP Madness",
+		"Mission: 3 Break Monad V2",
+		"Mission: 4 Visualizer & Dashboard",
+		"Hackathon",
+		"Free Will!!!",
 	}
 
 	return Contains(allowedEvents, event)

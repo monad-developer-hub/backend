@@ -19,7 +19,6 @@ type Config struct {
 	JWTSecret          string
 	CORSOrigins        []string
 	RateLimitPerMinute int
-	AdminEmail         string
 }
 
 // Load reads configuration from environment variables
@@ -33,7 +32,6 @@ func Load() *Config {
 		Port:       getEnv("PORT", "8080"),
 		GinMode:    getEnv("GIN_MODE", "debug"),
 		JWTSecret:  getEnv("JWT_SECRET", "your-super-secret-jwt-key"),
-		AdminEmail: getEnv("ADMIN_EMAIL", "admin@monad.dev"),
 	}
 
 	// Parse CORS origins
@@ -60,10 +58,10 @@ func (c *Config) DatabaseURL() string {
 		c.DBHost, c.DBPort, c.DBUser, c.DBPassword, c.DBName)
 }
 
-// getEnv returns the value of an environment variable or a default value
-func getEnv(key, defaultValue string) string {
+// getEnv gets environment variable with fallback
+func getEnv(key, fallback string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
-	return defaultValue
+	return fallback
 }

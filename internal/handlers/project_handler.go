@@ -53,7 +53,7 @@ func (h *ProjectHandler) GetProjects(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// CreateProject handles POST /api/v1/projects (for direct project creation - admin use)
+// CreateProject handles POST /api/v1/projects (for direct project creation)
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	c.JSON(http.StatusNotImplemented, gin.H{
 		"success": false,
