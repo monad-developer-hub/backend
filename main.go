@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"monad-devhub-be/internal/config"
 	"monad-devhub-be/internal/database"
@@ -58,12 +59,14 @@ func main() {
 	router := gin.Default()
 
 	// CORS middleware
-	corsConfig := cors.DefaultConfig()
-	// corsConfig.AllowOrigins = cfg.CORSOrigins
-	// corsConfig.AllowCredentials = true
-	corsConfig.AllowAllOrigins = true
-	corsConfig.AllowCredentials = false // Must be false when AllowAllOrigins is true
-	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization"}
+	corsConfig := cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+		MaxAge:           12 * time.Hour,
+	}
 	router.Use(cors.New(corsConfig))
 
 	// Global middleware
