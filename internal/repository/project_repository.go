@@ -82,9 +82,24 @@ func (r *ProjectRepository) CreateProject(project *models.Project) error {
 	return r.db.Create(project).Error
 }
 
-// UpdateProject updates an existing project
+// UpdateProject updates an existing project and its team members
 func (r *ProjectRepository) UpdateProject(project *models.Project) error {
-	return r.db.Save(project).Error
+	// Use a transaction to ensure atomicity
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Update the project itself (excluding team members to handle them separately)
+		if err := tx.Omit("TeamMembers").Save(project).Error; err != nil {
+			return err
+		}
+
+		// Update each team member individually to ensure associations are saved
+		for _, member := range project.TeamMembers {
+			if err := tx.Save(&member).Error; err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
 }
 
 // GetProjectByName retrieves a project by name

@@ -326,8 +326,8 @@ func (s *SubmissionService) UpdateProjectExtras(submissionID string, award *stri
 		return errors.New("project not found")
 	}
 
-	// Update award if provided
-	if award != nil {
+	// Update award if provided and not empty
+	if award != nil && *award != "" {
 		project.Award = *award
 	}
 
@@ -338,19 +338,24 @@ func (s *SubmissionService) UpdateProjectExtras(submissionID string, award *stri
 		for _, teamPhoto := range teamPhotos {
 			if memberName, ok := teamPhoto["memberName"]; ok {
 				if photoUrl, ok := teamPhoto["photoUrl"]; ok && photoUrl != "" {
+					// Only add to map if photoUrl is not empty
 					photoMap[memberName] = photoUrl
 				}
 			}
 		}
 
-		// Update team member photos
+		// Update team member photos only if we have non-empty URLs
 		for i := range project.TeamMembers {
 			if photoUrl, exists := photoMap[project.TeamMembers[i].Name]; exists {
-				project.TeamMembers[i].Image = photoUrl
+				// Only update if photoUrl is not empty (this check is redundant now but kept for safety)
+				if photoUrl != "" {
+					project.TeamMembers[i].Image = photoUrl
+				}
 			}
+			// If photoUrl is empty or doesn't exist in map, leave existing image unchanged
 		}
 	}
 
-	// Save the updated project
+	// Save the updated project (now with proper association handling)
 	return s.projectRepo.UpdateProject(project)
 }
