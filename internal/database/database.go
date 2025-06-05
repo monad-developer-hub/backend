@@ -35,6 +35,7 @@ func Migrate(db *gorm.DB) error {
 		&models.Transaction{},
 		&models.Contract{},
 		&models.ContractStats{},
+		&models.AdminUser{},
 	)
 
 	if err != nil {

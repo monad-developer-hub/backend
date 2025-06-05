@@ -5,6 +5,7 @@ import (
 	"math"
 	"time"
 
+	"errors"
 	"monad-devhub-be/internal/models"
 	"monad-devhub-be/internal/repository"
 )
@@ -304,4 +305,52 @@ func (s *SubmissionService) createProjectFromSubmission(submission *models.Submi
 	submission.ApprovedProjectID = &project.ID
 
 	return nil
+}
+
+// UpdateProjectExtras updates project award and team member photos for an approved submission
+func (s *SubmissionService) UpdateProjectExtras(submissionID string, award *string, teamPhotos []map[string]string) error {
+	// Get submission
+	submission, err := s.submissionRepo.GetSubmissionByID(submissionID)
+	if err != nil {
+		return err
+	}
+
+	// Check if submission has an approved project
+	if submission.ApprovedProjectID == nil {
+		return errors.New("project not found")
+	}
+
+	// Get the project
+	project, err := s.projectRepo.GetProjectByID(*submission.ApprovedProjectID)
+	if err != nil {
+		return errors.New("project not found")
+	}
+
+	// Update award if provided
+	if award != nil {
+		project.Award = *award
+	}
+
+	// Update team member photos if provided
+	if len(teamPhotos) > 0 {
+		// Create a map of member names to photo URLs for quick lookup
+		photoMap := make(map[string]string)
+		for _, teamPhoto := range teamPhotos {
+			if memberName, ok := teamPhoto["memberName"]; ok {
+				if photoUrl, ok := teamPhoto["photoUrl"]; ok && photoUrl != "" {
+					photoMap[memberName] = photoUrl
+				}
+			}
+		}
+
+		// Update team member photos
+		for i := range project.TeamMembers {
+			if photoUrl, exists := photoMap[project.TeamMembers[i].Name]; exists {
+				project.TeamMembers[i].Image = photoUrl
+			}
+		}
+	}
+
+	// Save the updated project
+	return s.projectRepo.UpdateProject(project)
 }

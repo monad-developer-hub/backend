@@ -277,3 +277,86 @@ func (h *SubmissionHandler) ReviewSubmission(c *gin.Context) {
 		"message":      "Submission reviewed successfully",
 	})
 }
+
+// UpdateProjectExtras handles PUT /api/v1/submissions/:submissionId/project-extras
+// Admin-only endpoint to update project award and team member photos after review
+func (h *SubmissionHandler) UpdateProjectExtras(c *gin.Context) {
+	submissionID := c.Param("submissionId")
+
+	// Validate submission ID format
+	if !utils.ValidateSubmissionID(submissionID) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INVALID_SUBMISSION_ID",
+				"message": "Invalid submission ID format",
+			},
+		})
+		return
+	}
+
+	// Parse update request
+	var updateRequest struct {
+		Award      *string             `json:"award,omitempty"`
+		TeamPhotos []map[string]string `json:"teamPhotos,omitempty"` // [{memberName: "John", photoUrl: "https://..."}]
+	}
+
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INVALID_UPDATE_DATA",
+				"message": "Invalid update data",
+				"details": err.Error(),
+			},
+		})
+		return
+	}
+
+	// Update project extras
+	err := h.submissionService.UpdateProjectExtras(
+		submissionID,
+		updateRequest.Award,
+		updateRequest.TeamPhotos,
+	)
+
+	if err != nil {
+		if err.Error() == "record not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "SUBMISSION_NOT_FOUND",
+					"message": "Submission not found",
+				},
+			})
+			return
+		}
+
+		if err.Error() == "project not found" {
+			c.JSON(http.StatusNotFound, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "PROJECT_NOT_FOUND",
+					"message": "Project not found - submission may not be approved yet",
+				},
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error": gin.H{
+				"code":    "INTERNAL_ERROR",
+				"message": "Failed to update project extras",
+				"details": err.Error(),
+			},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":      true,
+		"submissionId": submissionID,
+		"message":      "Project extras updated successfully",
+	})
+}

@@ -75,6 +75,11 @@ DB_NAME=monad_devhub
 PORT=8080
 GIN_MODE=debug
 
+# Authentication Configuration
+DEFAULT_ADMIN_PASSWORD=admin123
+JWT_SECRET=your-super-secret-jwt-key
+ADMIN_PASSWORD=admin123  # Legacy fallback
+
 # CORS Configuration
 CORS_ORIGINS=http://localhost:3000,http://localhost:3001
 
@@ -102,6 +107,55 @@ RATE_LIMIT_PER_MINUTE=100
 - `GET /api/v1/analytics/stats` - Get blockchain statistics
 - `GET /api/v1/analytics/transactions` - Get transaction data
 - `GET /api/v1/analytics/contracts/top` - Get top contracts
+
+### Authentication 🔐
+- `POST /api/v1/auth/login` - Admin login (requires username-password format)
+- `GET /api/v1/auth/verify` - Verify JWT token
+- `PUT /api/v1/auth/change-password` - Change admin password (protected)
+- `POST /api/v1/auth/admin` - Create new admin user (protected)
+
+## Authentication System
+
+The authentication system uses a username-password approach with bcrypt hashing. The frontend uses a single input field with the format `username-password`, and the backend parses it to extract the username and password.
+
+### Default Admin User
+
+On startup, the system automatically creates a default admin user if no admin users exist:
+
+- **Username:** `admin`  
+- **Default Password:** `admin123` (or set via `DEFAULT_ADMIN_PASSWORD` environment variable)
+- **Frontend Format:** `admin-admin123`
+
+### Input Format
+
+**Frontend Input Format:** `username-password`
+
+**Examples:**
+- `admin-admin123` (default)
+- `admin-mynewpassword456`
+- `john-secretpass789`
+
+### Password Management
+
+**Generate Password Hash:**
+```bash
+go run scripts/hash_password.go
+# Enter password when prompted
+```
+
+**Manual User Creation:**
+```sql
+INSERT INTO admin_users (username, password, is_active, created_at, updated_at)
+VALUES ('newuser', '<bcrypt_hash>', true, NOW(), NOW());
+```
+
+### Security Features
+
+✅ **Bcrypt Password Hashing** - All passwords securely hashed  
+✅ **JWT Authentication** - Secure token-based authentication  
+✅ **Protected Routes** - Admin operations require valid JWT tokens  
+✅ **Default User Creation** - Automatic setup with secure defaults  
+✅ **Password Change** - Dynamic password updates without restart
 
 ## Submission ID System
 
@@ -157,8 +211,9 @@ POST /api/v1/submissions
 The application uses PostgreSQL with GORM for ORM. Key tables:
 
 - `projects` - Approved projects
-- `team_members` - Project team members
+- `team_members` - Project team members  
 - `submissions` - Project submissions (with submission IDs)
+- `admin_users` - Admin user credentials (bcrypt hashed passwords)
 - `analytics_stats` - Blockchain statistics
 - `transactions` - Transaction data
 - `contracts` - Smart contract information

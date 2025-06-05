@@ -2,10 +2,12 @@ package middleware
 
 import (
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // Logger returns a gin middleware for logging
@@ -98,4 +100,73 @@ func RateLimit(requestsPerMinute int) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// Claims represents JWT token claims
+type Claims struct {
+	Role string `json:"role"`
+	jwt.RegisteredClaims
+}
+
+// JWTAuth returns a gin middleware for JWT authentication
+func JWTAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Get token from Authorization header
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "NO_TOKEN",
+					"message": "No authorization token provided",
+				},
+			})
+			c.Abort()
+			return
+		}
+
+		// Remove "Bearer " prefix
+		tokenString := authHeader
+		if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+			tokenString = authHeader[7:]
+		}
+
+		// Validate token
+		if !validateJWT(tokenString) {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"success": false,
+				"error": gin.H{
+					"code":    "INVALID_TOKEN",
+					"message": "Token is invalid or expired",
+				},
+			})
+			c.Abort()
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// validateJWT validates a JWT token
+func validateJWT(tokenString string) bool {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "your-super-secret-jwt-key"
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(jwtSecret), nil
+	})
+
+	if err != nil {
+		return false
+	}
+
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		// Check if token is expired
+		return claims.ExpiresAt.After(time.Now())
+	}
+
+	return false
 }

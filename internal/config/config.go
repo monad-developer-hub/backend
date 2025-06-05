@@ -35,11 +35,14 @@ func Load() *Config {
 	}
 
 	// Parse CORS origins
-	// corsOriginsStr := getEnv("CORS_ORIGINS", "http://localhost:3000")
-	// cfg.CORSOrigins = strings.Split(corsOriginsStr, ",")
-	cfg.CORSOrigins = []string{"*"}
-	for i := range cfg.CORSOrigins {
-		cfg.CORSOrigins[i] = strings.TrimSpace(cfg.CORSOrigins[i])
+	corsOriginsStr := getEnv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+	if corsOriginsStr == "*" {
+		cfg.CORSOrigins = []string{"*"}
+	} else {
+		cfg.CORSOrigins = strings.Split(corsOriginsStr, ",")
+		for i := range cfg.CORSOrigins {
+			cfg.CORSOrigins[i] = strings.TrimSpace(cfg.CORSOrigins[i])
+		}
 	}
 
 	// Parse rate limit

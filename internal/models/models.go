@@ -118,3 +118,13 @@ type TeamMemberInput struct {
 	Name    string `json:"name" binding:"required"`
 	Twitter string `json:"twitter" binding:"required"`
 }
+
+// AdminUser represents admin users with username/password authentication
+type AdminUser struct {
+	ID        uint      `json:"id" gorm:"primaryKey"`
+	Username  string    `json:"username" gorm:"uniqueIndex;not null"`
+	Password  string    `json:"password" gorm:"not null"` // In production, this should be hashed
+	IsActive  bool      `json:"isActive" gorm:"default:true"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}

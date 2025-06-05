@@ -54,17 +54,18 @@ func main() {
 	projectHandler := handlers.NewProjectHandler(projectService)
 	analyticsHandler := handlers.NewAnalyticsHandler(analyticsService)
 	submissionHandler := handlers.NewSubmissionHandler(projectService, submissionService)
+	authHandler := handlers.NewAuthHandler(db)
 
 	// Setup router
 	router := gin.Default()
 
 	// CORS middleware
 	corsConfig := cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     cfg.CORSOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Length", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowCredentials: len(cfg.CORSOrigins) == 1 && cfg.CORSOrigins[0] != "*", // Only allow credentials if not wildcard
 		MaxAge:           12 * time.Hour,
 	}
 	router.Use(cors.New(corsConfig))
@@ -82,6 +83,15 @@ func main() {
 	// API routes
 	v1 := router.Group("/api/v1")
 	{
+		// Auth routes
+		auth := v1.Group("/auth")
+		{
+			auth.POST("/login", authHandler.Login)
+			auth.GET("/verify", authHandler.VerifyToken)
+			auth.POST("/admin", middleware.JWTAuth(), authHandler.CreateAdmin)
+			auth.PUT("/change-password", middleware.JWTAuth(), authHandler.ChangePassword)
+		}
+
 		// Projects routes
 		projects := v1.Group("/projects")
 		{
@@ -97,7 +107,13 @@ func main() {
 			submissions.POST("", submissionHandler.SubmitProject)
 			submissions.GET("/:submissionId", submissionHandler.GetSubmissionStatus)
 			submissions.GET("", submissionHandler.GetSubmissions)
-			submissions.PUT("/:submissionId/review", submissionHandler.ReviewSubmission)
+			submissions.PUT("/:submissionId/review", middleware.JWTAuth(), submissionHandler.ReviewSubmission)
+		}
+
+		// Admin routes (now uses JWT auth for write operations)
+		admin := v1.Group("/admin")
+		{
+			admin.PUT("/submissions/:submissionId/project-extras", middleware.JWTAuth(), submissionHandler.UpdateProjectExtras)
 		}
 
 		// Analytics routes
