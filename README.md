@@ -1,6 +1,6 @@
-# Monad Developer Hub Backend
+# 🔧 Monad Developer Hub Backend
 
-A Go-based REST API for the Monad Developer Hub, built with Gin, GORM, and PostgreSQL.
+An open-source Go-based REST API for the Monad Developer Hub, built with Gin, GORM, and PostgreSQL. Provides robust project management, blockchain analytics, and authentication services.
 
 ## Features
 
@@ -32,8 +32,8 @@ A Go-based REST API for the Monad Developer Hub, built with Gin, GORM, and Postg
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd monad-devhub-be
+   git clone https://github.com/your-org/monad-developer-hub.git
+   cd monad-developer-hub/monad-devhub-be
    ```
 
 2. **Install dependencies**
@@ -271,14 +271,58 @@ go install github.com/cosmtrek/air@latest
 air
 ```
 
-## Contributing
+## 🤝 Contributing
 
+We welcome contributions to the Monad Developer Hub Backend! Please follow these guidelines:
+
+### Development Workflow
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## License
+### Coding Standards
+- Follow Go best practices and idioms
+- Write comprehensive tests for new features
+- Use `gofmt` for code formatting
+- Add proper error handling and logging
+- Document complex business logic
 
-This project is licensed under the MIT License. 
+### Testing
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run specific test package
+go test ./internal/handlers
+```
+
+### Running with Docker
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+```
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔗 Related Projects
+
+- [Monad DevHub Frontend](../monad-devhub-fe/) - Next.js web interface
+- [Monad Ponder Indexer](../monad-ponder-indexer/) - Blockchain indexer
+- [Indexer Interface](../monad-devhub-indexer-interface/) - Data interface service
+
+## 📞 Support
+
+- 📧 Email: [support@monaddevhub.com](mailto:support@monaddevhub.com)
+- 💬 Discord: [Join our community](https://discord.gg/monad)
+- 🐛 Issues: [GitHub Issues](https://github.com/your-org/monad-developer-hub/issues)
+
+---
+
+**Built with ❤️ for the Monad community** 

@@ -63,10 +63,10 @@ func (s *AnalyticsService) GetStats() (*GetStatsResponse, error) {
 	if err != nil {
 		// Return mock data if no stats found (for demo purposes)
 		mockStats := &models.AnalyticsStats{
-			TotalTransactions: 1245678,
-			TPS:               2450,
-			ActiveValidators:  128,
-			BlockHeight:       3456789,
+			TotalTransactions: 1737085372,
+			TPS:               0,
+			ActiveValidators:  99,
+			BlockHeight:       0,
 			Timestamp:         time.Now(),
 		}
 		return &GetStatsResponse{
